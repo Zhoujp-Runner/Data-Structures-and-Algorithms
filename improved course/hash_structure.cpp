@@ -7,9 +7,9 @@
  * @details
  * 该文件写的是左程云算法视频的提升课程中的与哈希函数有关的结构，包含：
  * 笔记
- * 1. 问题 1 设计RandomPool结构 （line72-139）
+ * 1. 问题 1 设计RandomPool结构
  * 2. 布隆过滤器，bit map的实现
- * 最近修改日期：2023-05-27
+ * 最近修改日期：2023-05-29
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -232,6 +232,49 @@ private:
 };
 
 
+
+/**
+ * @brief 岛问题
+ * @details 给定一个二维矩阵，其中只包含0和1
+ *          其中，1能够和位于他上下左右四个方向上的1进行连通，所有能够连通的1组成一个岛
+ *          求出矩阵中一共有几个岛
+ *
+ *          第一种解法就是暴力递归，即深度优先搜索，针对于矩阵中的每一个元素都进行一个搜索
+ *          每一个元素可能被访问的次数是5次（上下左右，还有一次是整体遍历），是常数级别
+ *          所以该解法的时间复杂度是O(N*M),N*M代表着矩阵的规模
+ *          另一个角度来看待这个时间复杂度的计算
+ *          DFS和BFS都是状态空间上的探索，所以他们的时间复杂度一般由状态空间的规模决定
+ */
+int count(int* arr, int rows, int cols);
+void infect(int* arr, int row, int col, int rows, int cols);
+
+int count(int* arr, int rows, int cols) {
+    int number = 0;
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            if (arr[i * cols + j] == 1) {
+                infect(arr, i, j, rows, cols);
+                number++;
+            }
+        }
+    }
+    return number;
+}
+
+void infect(int* arr, int row, int col, int rows, int cols) {
+    if (row >= rows
+        || row < 0
+        || col >= cols
+        || col < 0)  // 防止越界
+        return;
+    if (arr[row * cols + col] != 1) return;
+    arr[row * cols + col] = 2;
+    infect(arr, row + 1, col, rows, cols);
+    infect(arr, row - 1, col, rows, cols);
+    infect(arr, row, col + 1, rows, cols);
+    infect(arr, row, col - 1, rows, cols);
+}
+
 int main() {
 //    Question1 question1;
 //    question1.insert_key('A');
@@ -241,9 +284,12 @@ int main() {
 //    question1.insert_key('E');
 //    question1.delete_key('B');
 //    std::cout << question1.getKey(1) << std::endl;
-    BitMap bit_map;
-    bit_map.set_one(100);
-    cout << bit_map.search(101);
+//    BitMap bit_map;
+//    bit_map.set_one(100);
+//    cout << bit_map.search(101);
+    int a[2][3] = {{1, 1, 0}, {1, 0, 1}};
+    cout << count((int *)a, 2, 3);
     return 0;
+
 }
 
