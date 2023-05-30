@@ -35,17 +35,48 @@ using namespace std;
 class DSU {
 public:
     struct Package {
-        Package(int v) : value(v) {}
+        explicit Package(int v) : value(v) {}
         int value;
     };
 
+    //创建集合，初始时每个数单独作为集合，头结点为自身，集合大小为1
     void create_set(int value) {
         Package set(value);
-        head_map.emplace(set, set);
+        head_map.emplace(&set, &set);
+        check_map.emplace(value, &set);
+        set_size.emplace(&set, 1);
+    }
+
+    bool isSameSet(int value1, int value2) {
+        // 首先得确保两者都在某个集合当中
+        if (!exist(value1) || !exist(value2)) {
+            cout << "one of arguments is not in set!";
+            return false;
+        }
+
+        //依次向上寻找头结点
+        Package* current_head1= check_map[value1];
+        Package* head1= head_map[current_head1];
+        while (current_head1 != head1) {
+            current_head1 = head1;
+            head1 = head_map[current_head1];
+        }
+        Package* current_head2= check_map[value2];
+        Package* head2= head_map[current_head2];
+        while (current_head2 != head2) {
+            current_head2 = head2;
+            head2 = head_map[current_head2];
+        }
+
+        return head1 == head2;
+    }
+
+    bool exist(int value) {
+        return check_map.find(value) != check_map.end();
     }
 
 private:
-    unordered_map<Package, Package> head_map; // 查询该集合的头结点
-    unordered_map<int, Package> check_map; // 查询当前的value对应的是哪一个Package
-    unordered_map<Package, int> set_size; // 查询当前头结点所代表的集合的大小
+    unordered_map<Package*, Package*> head_map; // 查询该集合的头结点
+    unordered_map<int, Package*> check_map; // 查询当前的value对应的是哪一个Package
+    unordered_map<Package*, int> set_size; // 查询当前头结点所代表的集合的大小
 };
