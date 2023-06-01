@@ -72,6 +72,26 @@
  * 归根结底，暴力尝试过程中，假如不匹配，那么i -> 0, j -> j+1
  * 而KMP中，如果不匹配, 且next[i]不为-1，那么i -> next[i], j不变
  * 中间就省去了很多比对的步骤
+ *
+ *
+ *
+ * 对于时间复杂度的计算，这里就稍微有点技巧，主要是我还没能理解，所以只能说一下左程云的思路
+ * 首先KMP算法的时间复杂度是由两个部分组成，一个是比较过程，一个是next数组求解过程
+ *
+ * 先说一下比较过程的时间复杂度，比较过程是由i，j两个变量构成的循环
+ * 这里先设两个值，一个是j，一个是j-i，为什么要这样做，因为j在循环中是递增的，i有可能会往回跳，但是j-i也是递增的
+ * 而对于三个分支，第一个分支是j增加j-i不变；第二个分支是j增加，j-i增加；第三个分支是j不变，j-i增加
+ * 所以最坏情况就是单独j-i增加和j增加分开，而j最大值是N，j-i最大值也是N（j取最大为N，i取最小为0）
+ * 所以最坏情况下，时间复杂度是O(2*N)
+ *
+ * 然后是next数组的时间复杂度
+ * 同样构建i和i-j
+ * 前两个分支i增加，i-j不变；第三个分支i不变i-j增加
+ * 最坏情况同样是两个M
+ * 所以时间复杂度是O(2*M)
+ *
+ * 所以综上所述，该算法的时间复杂度归根结底还是一次项，只要保证字符串长度，肯定低于原始算法
+ *
  */
 
 #include <iostream>
@@ -84,16 +104,19 @@ using namespace std;
  */
 class KMP {
 public:
-    KMP(const string &s1, const string &s2) : source_seq(s1), child_seq(s1) {}
+    KMP(const string &s1, const string &s2) : source_seq(s1), child_seq(s2) {}
 
     int get_first_index_of_same_seq() {
         if (source_seq.length() < child_seq.length() || source_seq.empty() || child_seq.empty()) return -1;
 
         int* next = get_next_arr();
+        for (int k=0;k<child_seq.length();k++) {
+            cout<<next[k]<<endl;
+        }
 
         int i = 0;
         int j = 0;
-        while (j < source_seq.length() || i < child_seq.length()) {
+        while (j < source_seq.length() && i < child_seq.length()) {
             if (child_seq[i] == source_seq[j]) {
                 i++;
                 j++;
@@ -106,6 +129,9 @@ public:
             }
         }
         // 如果i越界了，说明存在相同的字符串，返回在原序列中子序列的起始位置；否则返回-1
+        cout << j << endl;
+        cout << child_seq.length() << endl;
+        cout << source_seq.length() << endl;
         return i == child_seq.length() ? int(j - child_seq.length()) : -1;
     }
 
@@ -134,6 +160,11 @@ public:
         return next;
     }
 
+    void print_str() {
+        cout<<source_seq<<endl;
+        cout<<child_seq<<endl;
+    }
+
 private:
     string source_seq;
     string child_seq;
@@ -141,8 +172,8 @@ private:
 
 
 int main() {
-    string si = "123456";
-    cout<<si[1];
+    KMP kmp("tgabbcsabbeabd", "abbcsabbe");
+    cout<<kmp.get_first_index_of_same_seq();
     return 0;
 }
 
