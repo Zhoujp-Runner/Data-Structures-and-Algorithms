@@ -8,7 +8,7 @@
  * 该文件写的是左程云算法视频的提升课程中的Manacher算法，包含：
  * 笔记
  * Manacher算法的实现
- * 最近修改日期：2023-06-07
+ * 最近修改日期：2023-06-12
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -99,9 +99,15 @@ public:
         int C = -1;
         int max = 0;
         for (int i = 0; i < str.length(); i++) {
+            // 首先算出最长的不用比较的区域
+            // 如果i比R大，说明比较点在最右右边界之外，说明此时只有自己本身是不用比较的，所以不用比较区域为1
+            // 如果i比R小，说明比较点在最右右边界之内，这时候会有两种情况
+            // 第一种是i'点（注意是i'，不是i，i'含义在上面笔记中）的回文串半径小于R-i，即i'的回文串全在R内，此时不用比较的区域即为i'的回文串半径，即pArr[2 * C - i]
+            // 第二种是i'点的回文串半径大于等于R-i，此时不用比较的区域大小是R-i（其实当大于R-i时，是不用进行比较的，当前位置的回文串半径就是R-i，这里为了统一代码，都比较了一下，反正比较一次就会退出比较循环）
             pArr[i] = i > R ? 1 : min(R - i, pArr[2 * C - i]);
 
-            while (i + pArr[i] < str.length() && i - pArr[i] > -1) {
+            // 比较循环，用来比较两个位置的字符是否相等，相等便将回文串长度加1
+            while (i + pArr[i] < str.length() && i - pArr[i] > -1) {  // 不越界
                 if (str[i + pArr[i]] == str[i - pArr[i]]) {
                     pArr[i]++;
                 } else {
@@ -109,14 +115,17 @@ public:
                 }
             }
 
+            // 如果发现当前i位置的回文串最右边界已经超过了R，那么更新R与C
             if (i + pArr[i] > R) {
                 R = i + pArr[i];
                 C = i;
             }
 
+            // 记录最长回文串半径
             max = max > pArr[i] ? max : pArr[i];
         }
 
+        // 最长回文串半径-1 就是题目所要求的，证明可以自己动手画一下
         cout << max - 1 << endl;
     }
 private:
