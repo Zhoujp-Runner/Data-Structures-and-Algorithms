@@ -31,6 +31,7 @@
  */
 
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -45,6 +46,14 @@ struct Node {
     }
 };
 
+struct Stuff {
+    int happy;
+    vector<Stuff*> sub;
+    explicit Stuff(const int & h) {
+        happy = h;
+    }
+};
+
 /**
  * 求一颗二叉树的任意两节点之间的最大距离
  * 分两类，1.最大距离的路径通过头节点，2.最大距离的路径不通过头节点
@@ -56,13 +65,14 @@ struct Node {
 class MaxDistance {
 private:
     Node* root;
+    // 需要返回的返回值类型
     struct Info {
         int max_distance;
         int height;
         Info(const int & m, const int & h) : max_distance(m), height(h) {}
     };
 public:
-    explicit MaxDistance(Node* head) : root(head) {}
+    explicit MaxDistance(Node* head) : root(head) {}  // 防止隐式转换
 
     int get_max_distance() {
         Info result = process(root);
@@ -71,42 +81,100 @@ public:
 
     Info process(Node* node) {
         if (node == nullptr) {
-            return {0, 0};
+            return {0, 0};  // 叶子节点的最大距离和高度都是0
         }
 
-        Info right = process(node->right);
-        Info left = process(node->left);
-        int max_distance = max(right.height + left.height + 1, max(right.max_distance, left.max_distance));
-        int height = max(right.height, left.height) + 1;
+        Info right = process(node->right);  // 计算右子树
+        Info left = process(node->left);  // 计算左子树
+        int max_distance = max(right.height + left.height + 1, max(right.max_distance, left.max_distance));  // 将左右子树的结果和通过当前节点的结果作对比
+        int height = max(right.height, left.height) + 1;  // 当前节点为根节点的树的高度为左右子树中较大的高度+1
         return {max_distance, height};
     }
 };
 
 
+/**
+ * 派对的最大快乐值问题
+ * 公司中，每个员工都可以带来一定的快乐值，现在举行一个派对，规定如果一个员工参加了派对，那么他的直属下级就不能参加派对，求该派对的最大快乐值（派对的快乐值就是所有人快乐值的累加）
+ * 那么同样分情况讨论
+ * 1.如果当前员工来了，那么以当前员工为根节点的树的最大快乐值就是当前员工的快乐值加上直属下级没来的最大快乐值
+ * 2.如果当前员工没来，那么最大快乐值就是直属下级来的最大快乐值和没来的最大快乐值中较大者
+ */
+class Party {
+private:
+    struct Info {
+        int present_happy;  // 头节点参加派对的快乐值
+        int absent_happy;  // 头节点不参加派对的快乐值
+        Info(const int & p, const int & a) : present_happy(p), absent_happy(a) {}
+    };
+
+public:
+    int get_max_happy(Stuff* boss) {
+        Info happy = process(boss);
+        return max(happy.present_happy, happy.absent_happy);
+    }
+
+    Info process(Stuff* stuff) {
+        if (stuff->sub.empty()) {  // 当stuff没有员工列表时，说明是底层员工，来快乐值就是自己的快乐值，不来的快乐值就是0
+           return {stuff->happy, 0};
+        }
+
+        int present_happy = stuff->happy;  // 当stuff来的时候，快乐值初始为stuff的快乐值
+        int absent_happy = 0;  // 当stuff不来的时候，快乐值初始为0
+        for (auto next : stuff->sub) {
+            Info sub = process(next);
+            present_happy += sub.absent_happy;  // stuff来时，只需要加上下级员工不来时的最大值
+            absent_happy += max(sub.present_happy, sub.absent_happy);  // stuff不来时，需要加上下级员工来与不来之间的最大值
+        }
+
+        return {present_happy, absent_happy};
+    }
+};
+
+
 int main() {
-    Node* one = new Node(1);
-    Node* two = new Node(2);
-    Node* three = new Node(3);
-    Node* four = new Node(4);
-    Node* five = new Node(5);
-    Node* six = new Node(6);
-    Node* seven = new Node(7);
-    Node* eight = new Node(8);
-    Node* nine = new Node(9);
-    Node* ten = new Node(10);
+//    Node* one = new Node(1);
+//    Node* two = new Node(2);
+//    Node* three = new Node(3);
+//    Node* four = new Node(4);
+//    Node* five = new Node(5);
+//    Node* six = new Node(6);
+//    Node* seven = new Node(7);
+//    Node* eight = new Node(8);
+//    Node* nine = new Node(9);
+//    Node* ten = new Node(10);
+//
+//    one->left = two;
+//    one->right = three;
+//    two->left = four;
+//    two->right = five;
+//    four->left = six;
+//    four->right = seven;
+//    five->right = eight;
+//    six->left = nine;
+//    eight->right = ten;
+//
+//    MaxDistance m(one);
+//    cout << m.get_max_distance() << endl;
 
-    one->left = two;
-    one->right = three;
-    two->left = four;
-    two->right = five;
-    four->left = six;
-    four->right = seven;
-    five->right = eight;
-    six->left = nine;
-    eight->right = ten;
+    Stuff* a = new Stuff(70);
+    Stuff* b = new Stuff(80);
+    Stuff* c = new Stuff(3);
+    Stuff* d = new Stuff(20);
+    Stuff* e = new Stuff(20);
+    Stuff* f = new Stuff(30);
+    Stuff* g = new Stuff(10);
+    Stuff* h = new Stuff(20);
+    a->sub.emplace_back(b);
+    a->sub.emplace_back(c);
+    a->sub.emplace_back(d);
+    b->sub.emplace_back(e);
+    c->sub.emplace_back(f);
+    d->sub.emplace_back(g);
+    d->sub.emplace_back(h);
 
-    MaxDistance m(one);
-    cout << m.get_max_distance() << endl;
+    Party party;
+    cout << party.get_max_happy(a) << endl;
     return 0;
 }
 
