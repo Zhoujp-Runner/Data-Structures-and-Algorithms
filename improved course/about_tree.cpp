@@ -7,9 +7,10 @@
  *
  * @details
  * 该文件写的是左程云算法视频的提升课程中关于树的一些算法，包含：
- * 笔记（树型DP）
+ * 笔记（树型DP、Morris遍历）
  * 用树型DP解两个问题
- * 最近修改日期：2023-06-19
+ * Morris遍历的代码实现
+ * 最近修改日期：2023-06-27
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -28,6 +29,18 @@
  *      第四步：设计递归函数，递归函数是处理以X为头节点的情况下的答案。
  *              包括设计递归的basecase，默认直接得到左树和右树的所有信息，以及把可能性做整合，并且要返回第三步的信息结构
  *
+ *
+ * ********* Morris遍历（线索二叉树） **********
+ * 步骤：
+ *  假设来到当前节点cur，开始时cur来到头节点位置
+ *      1）如果cur没有左孩子，cur向右移动（cur=cur.right）
+ *      2）如果cur有左孩子，找到左子树上最右的节点mostRight：
+ *          a.如果mostRight的右指针指向空，让其指向cur，然后cur向左移动（cur=cur.left）
+ *          b.如果mostRight的右指针指向cur，让其指向null，然后cur向右移动（cur=cur.right）
+ *      3）cur为空时遍历停止
+ * Morris遍历通过利用空闲指针，来达到空间复杂度为O(1)的目的
+ * Morris遍历需要找每个节点的左子树上的最右节点（会找两遍），所以每条寻找路径都是不重复的，时间复杂度为O(N)
+ * Morris遍历中，如果一个节点有左子树，那么会经过这个节点两次
  */
 
 #include <iostream>
@@ -132,49 +145,176 @@ public:
 };
 
 
+/**
+ * Morris遍历
+ * 先序遍历：只经过一次的节点直接打印，经过两次的节点第一次打印
+ * 中序遍历：只经过一次的节点直接打印，经过两次的节点第二次打印
+ * 后序遍历：当某个节点经过第二次时，逆序打印其左子树的右边界，当完成遍历时，再逆序打印整棵树的右边界
+ */
+class Morris {
+public:
+    void preorder(Node* root) {
+        if (root == nullptr) return;
+        Node* current = root;
+        Node* mostRight = nullptr;
+
+        while (current != nullptr) {
+            if (current->left != nullptr) {  // 如果有左子树
+                mostRight = current->left;  // 初始时，左子树的根节点就是左树上的最右节点
+                while (current != mostRight->right && mostRight->right != nullptr) {  // 最右节点的左孩子不指向空，或者不指向current
+                    mostRight = mostRight->right;  // mostRight不断向右移动
+                }
+
+                if (mostRight->right == nullptr) {  // 第一次来到current
+                    cout << current->value << endl;
+                    mostRight->right = current;
+                    current = current->left;
+                    continue;
+                }
+
+                if (mostRight->right == current) {  // 第二次来到current
+                    mostRight->right = nullptr;
+                }
+            } else {
+                cout << current->value << endl;
+            }
+
+            current = current->right;
+        }
+    }
+
+    void inorder(Node* root) {
+        if (root == nullptr) return;
+        Node* current = root;
+        Node* mostRight = nullptr;
+
+        while (current != nullptr) {
+            if (current->left != nullptr) {  // 如果有左子树
+                mostRight = current->left;  // 初始时，左子树的根节点就是左树上的最右节点
+                while (current != mostRight->right && mostRight->right != nullptr) {  // 最右节点的左孩子不指向空，或者不指向current
+                    mostRight = mostRight->right;  // mostRight不断向右移动
+                }
+
+                if (mostRight->right == nullptr) {  // 第一次来到current
+                    mostRight->right = current;
+                    current = current->left;
+                    continue;
+                }
+
+                if (mostRight->right == current) {  // 第二次来到current
+                    mostRight->right = nullptr;
+                }
+            }
+
+            cout << current->value << endl;
+            current = current->right;
+        }
+    }
+
+    void postorder(Node* root) {
+        if (root == nullptr) return;
+        Node* current = root;
+        Node* mostRight = nullptr;
+
+        while (current != nullptr) {
+            if (current->left != nullptr) {  // 如果有左子树
+                mostRight = current->left;  // 初始时，左子树的根节点就是左树上的最右节点
+                while (current != mostRight->right && mostRight->right != nullptr) {  // 最右节点的左孩子不指向空，或者不指向current
+                    mostRight = mostRight->right;  // mostRight不断向右移动
+                }
+
+                if (mostRight->right == nullptr) {  // 第一次来到current
+                    mostRight->right = current;
+                    current = current->left;
+                    continue;
+                }
+
+                if (mostRight->right == current) {  // 第二次来到current
+                    mostRight->right = nullptr;
+                    reverse_print_right_edge(current->left);
+                    /**
+                     * 这里把current->left改成current就会出现与我实际推的时候不相符的问题
+                     */
+                }
+            }
+
+            current = current->right;
+        }
+        reverse_print_right_edge(root);
+    }
+
+    // 逆序打印某个节点为根节点的树的右边界
+    void reverse_print_right_edge(Node* node) {
+        Node* reverse = reverse_edge(node);
+        Node* cur = reverse;
+        while (cur != nullptr) {
+            cout << cur->value << endl;
+            cur = cur->right;
+        }
+        reverse_edge(reverse);
+    }
+
+    // 逆序某个节点的右边界（就和链表的逆序一样）
+    Node* reverse_edge(Node* node) {
+        Node* pre = nullptr;
+        Node* next = nullptr;
+        while (node != nullptr) {
+            next = node->right;
+            node->right = pre;
+            pre = node;
+            node = next;
+        }
+
+        return pre;
+    }
+};
+
+
 int main() {
-//    Node* one = new Node(1);
-//    Node* two = new Node(2);
-//    Node* three = new Node(3);
-//    Node* four = new Node(4);
-//    Node* five = new Node(5);
-//    Node* six = new Node(6);
-//    Node* seven = new Node(7);
-//    Node* eight = new Node(8);
-//    Node* nine = new Node(9);
-//    Node* ten = new Node(10);
-//
-//    one->left = two;
-//    one->right = three;
-//    two->left = four;
-//    two->right = five;
-//    four->left = six;
-//    four->right = seven;
-//    five->right = eight;
-//    six->left = nine;
-//    eight->right = ten;
+    Node* one = new Node(1);
+    Node* two = new Node(2);
+    Node* three = new Node(3);
+    Node* four = new Node(4);
+    Node* five = new Node(5);
+    Node* six = new Node(6);
+    Node* seven = new Node(7);
+    Node* eight = new Node(8);
+    Node* nine = new Node(9);
+    Node* ten = new Node(10);
+
+    one->left = two;
+    one->right = three;
+    two->left = four;
+    two->right = five;
+    four->left = six;
+    four->right = seven;
+    five->right = eight;
+    six->left = nine;
+    eight->right = ten;
 //
 //    MaxDistance m(one);
 //    cout << m.get_max_distance() << endl;
+    Morris morris;
+    morris.postorder(one);
 
-    Stuff* a = new Stuff(70);
-    Stuff* b = new Stuff(80);
-    Stuff* c = new Stuff(3);
-    Stuff* d = new Stuff(20);
-    Stuff* e = new Stuff(20);
-    Stuff* f = new Stuff(30);
-    Stuff* g = new Stuff(10);
-    Stuff* h = new Stuff(20);
-    a->sub.emplace_back(b);
-    a->sub.emplace_back(c);
-    a->sub.emplace_back(d);
-    b->sub.emplace_back(e);
-    c->sub.emplace_back(f);
-    d->sub.emplace_back(g);
-    d->sub.emplace_back(h);
-
-    Party party;
-    cout << party.get_max_happy(a) << endl;
+//    Stuff* a = new Stuff(70);
+//    Stuff* b = new Stuff(80);
+//    Stuff* c = new Stuff(3);
+//    Stuff* d = new Stuff(20);
+//    Stuff* e = new Stuff(20);
+//    Stuff* f = new Stuff(30);
+//    Stuff* g = new Stuff(10);
+//    Stuff* h = new Stuff(20);
+//    a->sub.emplace_back(b);
+//    a->sub.emplace_back(c);
+//    a->sub.emplace_back(d);
+//    b->sub.emplace_back(e);
+//    c->sub.emplace_back(f);
+//    d->sub.emplace_back(g);
+//    d->sub.emplace_back(h);
+//
+//    Party party;
+//    cout << party.get_max_happy(a) << endl;
     return 0;
 }
 
