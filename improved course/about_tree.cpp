@@ -7,10 +7,11 @@
  *
  * @details
  * 该文件写的是左程云算法视频的提升课程中关于树的一些算法，包含：
- * 笔记（树型DP、Morris遍历）
+ * 笔记（树型DP、Morris遍历、Morris遍历和递归遍历的应用条件）
  * 用树型DP解两个问题
- * Morris遍历的代码实现
- * 最近修改日期：2023-06-27
+ * Morris遍历的代码实现、以及用其实现前序、中序、后序
+ * 用Morris遍历判断是否是搜索二叉树
+ * 最近修改日期：2023-06-28
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -41,6 +42,12 @@
  * Morris遍历通过利用空闲指针，来达到空间复杂度为O(1)的目的
  * Morris遍历需要找每个节点的左子树上的最右节点（会找两遍），所以每条寻找路径都是不重复的，时间复杂度为O(N)
  * Morris遍历中，如果一个节点有左子树，那么会经过这个节点两次
+ *
+ * 什么时候Morris遍历时最优解？换句话说，什么时候可以用Morris遍历，什么时候只能用递归遍历
+ * 如果一个任务要求当前节点必须做第三次信息的强整合（例如必须收集左子树的信息以及右子树的信息之后才能得到当前节点的信息），那么只能使用二叉树的递归
+ * 如果该任务不一定需要做第三次信息的强整合（例如下面写的判断一棵树是否是搜索二叉树），那么Morris遍历会是最优解
+ * 因为递归遍历能够一个节点经过三次
+ * 而Morris遍历，一个节点，如果有左子树能经过两次，如果没有左子树只能经过一次
  */
 
 #include <iostream>
@@ -231,9 +238,11 @@ public:
 
                 if (mostRight->right == current) {  // 第二次来到current
                     mostRight->right = nullptr;
-                    reverse_print_right_edge(current->left);
+                    reverse_print_right_edge(current);
                     /**
                      * 这里把current->left改成current就会出现与我实际推的时候不相符的问题
+                     * 解答：刚开始推导的时候，忘记了树最右节点的右指针不为空
+                     * 也就是说，如果写的是current，那么树的最右此时以current为根节点的树的最右节点的指针是指向上一级有左子树的节点，所以右边界会一直往回找，直到找完原始树的右边界
                      */
                 }
             }
@@ -267,6 +276,40 @@ public:
 
         return pre;
     }
+
+    // 用Morris遍历判断一棵树是否是搜索二叉树
+    bool isBST(Node* node) {
+        // 如果树为空，则认为是搜索二叉树
+        if (node == nullptr) {
+            return true;
+        }
+        Node* current = node;
+        Node* mostRight = nullptr;
+        int previous = INT_MIN;
+
+        while (current != nullptr) {
+            if (current->left != nullptr) {
+                mostRight = current->left;
+                while (mostRight->right != nullptr && mostRight->right != current) {
+                    mostRight = mostRight->right;
+                }
+
+                if (mostRight->right == nullptr) {
+                    mostRight->right = current;
+                    current = current->left;
+                    continue;
+                } else {
+                    mostRight->right = nullptr;
+                }
+            }
+            if (current->value < previous) {
+                return false;
+            }
+            previous = current->value;
+            current = current->right;
+        }
+        return true;
+    }
 };
 
 
@@ -282,20 +325,26 @@ int main() {
     Node* nine = new Node(9);
     Node* ten = new Node(10);
 
-    one->left = two;
-    one->right = three;
-    two->left = four;
-    two->right = five;
-    four->left = six;
-    four->right = seven;
-    five->right = eight;
-    six->left = nine;
-    eight->right = ten;
+    four->left = two;
+    four->right = six;
+    two->left = one;
+    two->right = three;
+    six->left = five;
+    six->right = seven;
+//    one->left = two;
+//    one->right = three;
+//    two->left = four;
+//    two->right = five;
+//    four->left = six;
+//    four->right = seven;
+//    five->right = eight;
+//    six->left = nine;
+//    eight->right = ten;
 //
 //    MaxDistance m(one);
 //    cout << m.get_max_distance() << endl;
     Morris morris;
-    morris.postorder(one);
+    cout << morris.isBST(four);
 
 //    Stuff* a = new Stuff(70);
 //    Stuff* b = new Stuff(80);
