@@ -6,8 +6,10 @@
  *
  * @details
  * 该文件写的是左程云算法视频的基础提升课程中关于由暴力递归到动态规划的内容：
- * 1. 机器人行走路线
- * 最近修改日期：2023-08-28
+ * 1. 二维表
+     a. 机器人行走路线
+     b. 兑换零钱问题
+ * 最近修改日期：2023-08-29
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -21,6 +23,17 @@
 
 using namespace std;
 
+////////////////////////////////////////二维表//////////////////////////////////////////
+/**
+ * 展示  暴力递归（尝试）--->记忆化搜索（缓存）--->严格表依赖的动态规划
+ * 改动态规划的方法：
+ * 1.找可变参数范围
+ * 2.定出最终位置，即最终答案对应的可变参数值
+ * 3.通过basecase初始化表
+ * 4.根据暴力递归寻找位置依赖
+ * 5.根据最终位置以及位置依赖确定表的更新顺序
+ */
+
 /**
  * 机器人行走问题
  * 给定一个整数N，表示机器人能够行走的位置总数，即机器人可以行走的位置为 1,2,3,4,5,...,N
@@ -29,7 +42,6 @@ using namespace std;
  * 已知机器人每次只能向左或向右移动一步，且当位于1时，只能向右走到2；当位于N时，只能向左走到N-1
  * 求一共有多少种走法
  */
-
 /**
  * 首先采用暴力递归的方法，通过尝试求解
  * N和E都和题中的含义相同，cur表示当前所处的位置，residual表示剩余的步数
@@ -126,14 +138,131 @@ int process1_dp(int N, int E, int S, int K) {
     return dp[S][K];
 }
 
-int main() {
-    int N = 5;
-    int K = 4;
+
+/**
+ * 兑换零钱问题
+ * 给你一个vector，代表一堆硬币（存在重复的可能）
+ * 给你一个目标值target，你需要用vector中的硬币组合成target
+ * 求硬币数量最少的组合方案
+ */
+/**
+ * 暴力递归的方法
+ * 自左向右的尝试方法
+ * 就是从vector第一个元素开始，分别探讨要和不要，直到vector被遍历完
+ */
+int process2(vector<int> coins, int index, int residual) {
+    // index 表示当前遍历到第几个硬币
+    // residual表示剩余还有多少钱需要换成硬币
+    if (residual < 0) {  // 如果当前剩余钱的面值已经小于0，说明这种组合方式已经行不通了
+        return -1;
+    }
+    if (index == coins.size()) {  // 如果当前所有硬币已经选完
+        return residual == 0 ? 0 : -1;  // 此时如果residual为0，说明该种组合符合要求
+    }
+    int select = process2(coins, index + 1, residual - coins[index]); // 选当前硬币
+    int unselect = process2(coins, index + 1, residual);  // 不选当前硬币
+    if (select == -1 && unselect == -1) {  // 如果选和不选都行不通，说明此时已经行不通了
+        return -1;
+    }
+    // 如果两者中有一个为-1 就返回另外一个
+    if (select == -1) {
+        return unselect;
+    }
+    if (unselect == -1) {
+        return 1 + select;
+    }
+    // 如果两者都可以组合成功，就返回硬币数少的（1+ 表示选当前硬币要算上当前硬币的数量）
+    return min(unselect,  1 + select);
+}
+
+/**
+ * 记忆化搜索
+ * 缓存的范围是index:0~N，residual:0~target
+ */
+int process2_memory(vector<int> coins, int index, int residual, vector<vector<int>> & dp) {
+    // index 表示当前遍历到第几个硬币
+    // residual表示剩余还有多少钱需要换成硬币
+    if (residual < 0) {
+        return -1;
+    }
+    if (dp[index][residual] != -2) {
+        return dp[index][residual];
+    }
+    if (residual == 0) {
+        dp[index][residual] = 0;
+    } else if (index == coins.size()) {  // 如果当前所有硬币已经选完
+        dp[index][residual] = -1;
+    } else {
+        int select = process2(coins, index + 1, residual - coins[index]); // 选当前硬币
+        int unselect = process2(coins, index + 1, residual);  // 不选当前硬币
+        if (select == -1 && unselect == -1) {  // 如果选和不选都行不通，说明此时已经行不通了
+            dp[index][residual] = -1;
+        } else if (select == -1) {
+            dp[index][residual] = unselect;
+        } else if (unselect == -1) {
+            dp[index][residual] = 1 + select;
+        } else {  // 如果两者都可以组合成功，就返回硬币数少的（1+ 表示选当前硬币要算上当前硬币的数量）
+            dp[index][residual] = min(unselect,  1 + select);
+        }
+    }
+    return dp[index][residual];
+}
+
+/**
+ * 动态规划版本
+ * 根据basecase初始化
+ * 依赖关系可以直接由暴力递归或者记忆化搜索版本修改得到
+ */
+int process2_dp(vector<int> coins, int target) {
     vector<vector<int>> dp;
-    for (int i = 0; i < N + 1; i ++) {
-        vector<int> row(K+1, -1);
+    for (int i = 0; i <= coins.size(); i++) {
+        if (i == coins.size()) {
+            vector<int> row(target + 1, -1);
+            row[0] = 0;
+            dp.emplace_back(row);
+            break;
+        }
+        vector<int> row(target + 1, -2);
+        row[0] = 0;
         dp.emplace_back(row);
     }
-    cout << process1_dp(5, 4, 2, 4);
+
+    for (int index = coins.size() - 1; index >= 0; index--) {
+        for (int residual = 1; residual <= target; residual++) {
+            int select = residual - coins[index] >= 0 ? dp[index + 1][residual - coins[index]] : -1;
+            int unselect = dp[index + 1][residual];
+            if (select == -1 && unselect == -1) {
+                dp[index][residual] = -1;
+            } else if (select == -1) {
+                dp[index][residual] = unselect;
+            } else if (unselect == -1) {
+                dp[index][residual] = 1 + select;
+            } else {
+                dp[index][residual] = min(unselect, 1 + select);
+            }
+        }
+    }
+
+//    // 打印dp表
+//    for (int i = 0; i <= coins.size(); i++) {
+//        for (int j = 0; j <= target; j++ ) {
+//            cout << dp[i][j] << ' ';
+//        }
+//        cout << endl;
+//    }
+
+    return dp[0][target];
+}
+
+int main() {
+    vector<int> coins = {1, 2, 3, 5, 7, 9};
+    int target = 13;
+    vector<vector<int>> dp;
+    for (int i = 0; i < coins.size() + 1; i++) {
+        vector<int> row(target + 1, -2);
+        dp.emplace_back(row);
+    }
+    cout << process2_dp(coins, target);
+
     return 0;
 }
