@@ -9,7 +9,8 @@
  * 1. 二维表
      a. 机器人行走路线
      b. 兑换零钱问题
- * 最近修改日期：2023-08-29
+     c. 先后手问题
+ * 最近修改日期：2023-08-31
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -44,6 +45,7 @@ using namespace std;
  */
 /**
  * 首先采用暴力递归的方法，通过尝试求解
+ * 尝试方法：通过点将问题分割为子问题
  * N和E都和题中的含义相同，cur表示当前所处的位置，residual表示剩余的步数
  */
 int process1(int N, int E, int cur, int residual) {
@@ -147,7 +149,7 @@ int process1_dp(int N, int E, int S, int K) {
  */
 /**
  * 暴力递归的方法
- * 自左向右的尝试方法
+ * 尝试方法：自左向右
  * 就是从vector第一个元素开始，分别探讨要和不要，直到vector被遍历完
  */
 int process2(vector<int> coins, int index, int residual) {
@@ -254,15 +256,132 @@ int process2_dp(vector<int> coins, int target) {
     return dp[0][target];
 }
 
+
+/**
+ * 先手后手问题
+ * 给你一个数组，表示一堆价值不一的东西
+ * 有A和B两个人，每个人轮流从数组中拿走一样东西
+ * 但是有一个规则，拿的时候只能拿数组两端的东西
+ * 假设A和B都绝顶聪明，A能决定先后手
+ * 注意，数组中的数都是正数，是零和博弈，也就是说你的收益和对手的损失是相等的
+ * 问A能拿到的最大总价值数
+ */
+/**
+ * 暴力递归的方法
+ * 尝试方法：范围型尝试
+ * 在left,right范围上先后手
+ */
+int first(vector<int> arr, int left, int right);  // 先手函数
+int second(vector<int> arr, int left, int right);  // 后手函数
+
+int first(vector<int> arr, int left, int right) {
+    if (left == right) {  // 如果此时范围中只有一个物品，作为先手，当然直接拿
+        return arr[left];
+    }
+
+    // 为什么是max，因为此刻你具有选择权，你必定会选择最大的价值
+    return max(arr[left] + second(arr, left + 1, right),  // 如果选left，那么所获得的价值就是当前点和在选完之后区间上的后手所得到的价值
+               arr[right] + second(arr, left, right - 1));  // 选right也同理
+}
+
+int second(vector<int> arr, int left, int right) {
+    if (left == right) {  // 如果此时范围中只有一个物品，作为后手，当然不能拿
+        return 0;
+    }
+
+    // 为什么是min，因为你此时是后手，在这个区间上，对手是先手，对手肯定会使得你在下一个区间上先手所能获得的价值最小
+    return min(first(arr, left + 1, right),
+               first(arr, left, right - 1));
+}
+
+int process3(vector<int> arr) {  // 返回你在整个区间上先手和后手所能获得的价值的最大值
+    return max(first(arr, 0, arr.size() - 1),
+               second(arr, 0, arr.size() - 1));
+}
+
+/**
+ * 记忆化搜索版本
+ */
+int first_memory(vector<int> arr, int left, int right, vector<vector<int>>& dp_first, vector<vector<int>>& dp_second);  // 先手函数
+int second_memory(vector<int> arr, int left, int right, vector<vector<int>>& dp_first, vector<vector<int>>& dp_second);  // 后手函数
+int first_memory(vector<int> arr, int left, int right, vector<vector<int>>& dp_first, vector<vector<int>>& dp_second) {
+    if (dp_first[left][right] != -1) {
+        return dp_first[left][right];
+    }
+
+    if (left == right) {  // 如果此时范围中只有一个物品，作为先手，当然直接拿
+        dp_first[left][right] = arr[left];
+    } else {
+        // 为什么是max，因为此刻你具有选择权，你必定会选择最大的价值
+        dp_first[left][right] =  max(arr[left] + second_memory(arr, left + 1, right, dp_first, dp_second),  // 如果选left，那么所获得的价值就是当前点和在选完之后区间上的后手所得到的价值
+                                    arr[right] + second_memory(arr, left, right - 1, dp_first, dp_second));  // 选right也同理
+    }
+    return dp_first[left][right];
+
+}
+
+int second_memory(vector<int> arr, int left, int right, vector<vector<int>>& dp_first, vector<vector<int>>& dp_second) {
+    if (dp_second[left][right] != -1) {
+        return dp_second[left][right];
+    }
+
+    if (left == right) {  // 如果此时范围中只有一个物品，作为后手，当然不能拿
+        dp_second[left][right] = 0;
+    } else {
+        // 为什么是min，因为你此时是后手，在这个区间上，对手是先手，对手肯定会使得你在下一个区间上先手所能获得的价值最小
+        dp_second[left][right] = min(first_memory(arr, left + 1, right, dp_first, dp_second),
+                                     first_memory(arr, left, right - 1, dp_first, dp_second));
+    }
+    return dp_second[left][right];
+
+}
+
+int process3_memory(vector<int> arr) {  // 返回你在整个区间上先手和后手所能获得的价值的最大值
+    vector<vector<int>> dp_first(arr.size(), vector<int>(arr.size(), -1));
+    vector<vector<int>> dp_second(arr.size(), vector<int>(arr.size(), -1));
+    return max(first_memory(arr, 0, arr.size() - 1, dp_first, dp_second),
+               second_memory(arr, 0, arr.size() - 1, dp_first, dp_second));
+}
+
+/**
+ * 动态规划版本
+ */
+int process3_dp(vector<int> arr) {  // 返回你在整个区间上先手和后手所能获得的价值的最大值
+    vector<vector<int>> dp_first(arr.size(), vector<int>(arr.size(), -1));
+    vector<vector<int>> dp_second(arr.size(), vector<int>(arr.size(), -1));
+
+    for (int i = 0; i < arr.size(); i++) {  // 根据basecase初始化dp表
+        dp_first[i][i] = arr[i];
+        dp_second[i][i] = 0;
+    }
+
+    int index = 1;
+    while (index < arr.size()) {  // 分析依赖，按对角线更新
+        for (int i = 0; i < arr.size(); i++) {
+            int j = i + index;
+            if (j > arr.size() - 1) {
+                break;
+            }
+            dp_first[i][j] = max(arr[i] + dp_second[i + 1][j],
+                                 arr[j] + dp_second[i][j - 1]);
+            dp_second[i][j] = min(dp_first[i + 1][j], dp_first[i][j - 1]);
+        }
+        index++;
+    }
+
+    return max(dp_first[0][arr.size() - 1],
+               dp_second[0][arr.size() - 1]);
+}
+
 int main() {
     vector<int> coins = {1, 2, 3, 5, 7, 9};
-    int target = 13;
-    vector<vector<int>> dp;
-    for (int i = 0; i < coins.size() + 1; i++) {
-        vector<int> row(target + 1, -2);
-        dp.emplace_back(row);
-    }
-    cout << process2_dp(coins, target);
+//    int target = 13;
+//    vector<vector<int>> dp;
+//    for (int i = 0; i < coins.size() + 1; i++) {
+//        vector<int> row(target + 1, -2);
+//        dp.emplace_back(row);
+//    }
+    cout << process3_dp(coins);
 
     return 0;
 }
