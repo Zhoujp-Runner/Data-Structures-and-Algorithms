@@ -9,7 +9,7 @@
  * 1. 二维表
      a. 机器人行走路线
      b. 兑换零钱问题
-     c. 先后手问题
+     c. 先后手问题（零和博弈）
  * 最近修改日期：2023-08-31
  *
  * @author   Zhou Junping
@@ -301,6 +301,7 @@ int process3(vector<int> arr) {  // 返回你在整个区间上先手和后手�
 
 /**
  * 记忆化搜索版本
+ * 两个dp表
  */
 int first_memory(vector<int> arr, int left, int right, vector<vector<int>>& dp_first, vector<vector<int>>& dp_second);  // 先手函数
 int second_memory(vector<int> arr, int left, int right, vector<vector<int>>& dp_first, vector<vector<int>>& dp_second);  // 后手函数
@@ -345,6 +346,8 @@ int process3_memory(vector<int> arr) {  // 返回你在整个区间上先手和�
 
 /**
  * 动态规划版本
+ * 两个dp表依次更新
+ * 一个元素不依赖于当前表中的任何元素，而是依赖于另一张表
  */
 int process3_dp(vector<int> arr) {  // 返回你在整个区间上先手和后手所能获得的价值的最大值
     vector<vector<int>> dp_first(arr.size(), vector<int>(arr.size(), -1));
