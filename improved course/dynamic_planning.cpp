@@ -6,11 +6,17 @@
  *
  * @details
  * 该文件写的是左程云算法视频的基础提升课程中关于由暴力递归到动态规划的内容：
+ * 总结一下
  * 1. 二维表
-     a. 机器人行走路线
-     b. 兑换零钱问题
-     c. 先后手问题（零和博弈）
- * 最近修改日期：2023-08-31
+ *      a. 机器人行走路线
+ *      b. 兑换零钱问题
+ *      c. 先后手问题（零和博弈）
+ * 2. 三维表
+ *      a. 棋子“马”步数问题
+ *      b. 生存几率问题（里面还有一个求最大公约数的方法）
+ * 3. 优化动态规划
+ *      a. 组出某个钱数的方法数（背包问题）---斜率优化
+ * 最近修改日期：2023-09-01
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -21,8 +27,21 @@
 
 #include <iostream>
 #include <vector>
+#include <math.h>
 
 using namespace std;
+
+/*******************************总结一下*******************************
+ * 首先尝试（尝试方法一般有从左往右和范围上尝试，这两种尝试方法可以解决面试过程中基本上7成的递归问题）
+ * 其次根据尝试改出记忆化搜索
+ * 然后根据记忆化搜索改出动态规划（初始化+依赖+更新顺序）
+ * 根据动态规划，观察依赖的特点，优化动态规划（这里只展示了枚举行为的斜率优化，中高级班会讲其他的优化）
+ *
+ * 如何确定一个尝试是好的尝试？（无法确定，但是我们需要用尝试改到动态规划，这时候依据这一点我们可以有一些评价标准）
+ * 1. 单个可变参数的维度（最好是1维）：可变参数的维度决定着dp表中当前维度的深度，如果是1维，那么这个数的大小范围就是当前维度的深度，
+ *      但是如果是一个数组（大于1维），如果没有一些约束，那么变化情况就无限了，深度不可估计
+ * 2. 可变参数的个数（越少越好）：可变参数的个数决定着dp表的维度数量
+ **********************************************************************/
 
 ////////////////////////////////////////二维表//////////////////////////////////////////
 /**
@@ -376,6 +395,280 @@ int process3_dp(vector<int> arr) {  // 返回你在整个区间上先手和后�
                dp_second[0][arr.size() - 1]);
 }
 
+
+//////////////////////////////////////////三维表////////////////////////////////////////
+
+/**
+ * 棋子“马”步数问题
+ * 象棋棋盘规格是横9纵10，用一个shape为(9,10)的二维数组代替
+ * 假设棋子马一开始在(0,0)位置
+ * 棋子马走一步的规则按照象棋的规则来
+ * 目的地是(x, y)，总步数是K
+ * 请问一共有多少种方法走到目的地
+ */
+/**
+ * 暴力递归
+ * 我们将问题反过来思考，从(0,0)->(x,y)，其实和从(x,y)->(0,0)一样的
+ * 这样递归函数的含义就是从(x,y)到(0,0)能花residual步数到达的方法数
+ */
+int process4(int x, int y, int residual) {
+    if (residual == 0) {
+        return (x == 0) && (y == 0) ? 1 : 0;
+    }
+    // 越界
+    if (x < 0 || y < 0 || x > 8 || y > 9) {
+        return 0;
+    }
+
+    // 返回八个方向上的方法之和
+    return (process4(x - 1, y + 2, residual - 1) +
+            process4(x - 2, y + 1, residual - 1) +
+            process4(x - 2, y - 1, residual - 1) +
+            process4(x - 1, y - 2, residual - 1) +
+            process4(x + 1, y - 2, residual - 1) +
+            process4(x + 2, y - 1, residual - 1) +
+            process4(x + 2, y + 1, residual - 1) +
+            process4(x + 1, y + 2, residual - 1)
+            );
+}
+
+/**
+ * 记忆化搜索
+ * 三个可变参数，所以建立的缓存表需要有三个维度
+ */
+int process4_memory(int x, int y, int residual, vector<vector<vector<int>>>& dp) {
+    // 越界
+    if (x < 0 || y < 0 || x > 8 || y > 9) {
+        return 0;
+    }
+
+    if(dp[residual][x][y] != -1) {
+        return dp[residual][x][y];
+    }
+    if (residual == 0) {
+        dp[residual][x][y] = (x == 0) && (y == 0) ? 1 : 0;
+    } else {
+        // 返回八个方向上的方法之和
+        dp[residual][x][y] = process4(x - 1, y + 2, residual - 1) +
+                             process4(x - 2, y + 1, residual - 1) +
+                             process4(x - 2, y - 1, residual - 1) +
+                             process4(x - 1, y - 2, residual - 1) +
+                             process4(x + 1, y - 2, residual - 1) +
+                             process4(x + 2, y - 1, residual - 1) +
+                             process4(x + 2, y + 1, residual - 1) +
+                             process4(x + 1, y + 2, residual - 1);
+    }
+    return dp[residual][x][y];
+}
+
+/**
+ * 动态规划
+ * 会发现本层的值只依赖于下一层的值
+ */
+int process4_dp(int x, int y, int K) {
+    vector<vector<vector<int>>> dp(K + 1, vector<vector<int>>(9, vector<int>(10, 0)));
+    dp[0][0][0] = 1;
+
+    for (int residual = 1; residual <= K; residual++) {
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 10; j++) {
+                // 返回八个方向上的方法之和
+                // 这里判断越界并取值可以另外写一个函数，就不用自己在这重复写了
+                int p1 = i - 1 < 0 || j + 2 > 9 ? 0 : dp[residual - 1][i - 1][j + 2];
+                int p2 = i - 2 < 0 || j + 1 > 9 ? 0 : dp[residual - 1][i - 2][j + 1];
+                int p3 = i - 2 < 0 || j - 1 < 0 ? 0 : dp[residual - 1][i - 2][j - 1];
+                int p4 = i - 1 < 0 || j - 2 < 0 ? 0 : dp[residual - 1][i - 1][j - 2];
+                int p5 = i + 1 > 8 || j - 2 < 0 ? 0 : dp[residual - 1][i + 1][j - 2];
+                int p6 = i + 2 > 8 || j - 1 < 0 ? 0 : dp[residual - 1][i + 2][j - 1];
+                int p7 = i + 2 > 8 || j + 1 > 9 ? 0 : dp[residual - 1][i + 2][j + 1];
+                int p8 = i + 1 > 8 || j + 2 > 9 ? 0 : dp[residual - 1][i + 1][j + 2];
+                dp[residual][i][j] = p1 + p2 + p3 + p4 + p5 + p6 + p7 + p8;
+            }
+        }
+    }
+    return dp[K][x][y];
+}
+
+
+/**
+ * 生存几率问题
+ * 给定一个安全区域，大小为(x,y)
+ * 一个人初始位置在(a, b)
+ * 这个人上下左右随便走，一旦走出安全区域就会死亡
+ * 一共可以走K步
+ * 请问该人的生存几率有多大
+ */
+/**
+ * 暴力递归版本
+ * 求出生存的行走方法数
+ * 然后在将能成存的行走方法数除以总的方法数，只在求方法数上进行递归求解
+ */
+int process5(int x, int y, int a, int b, int residual) {
+    if (a < 0 || b < 0 || a >= x || b >= y) {
+        return 0;
+    }
+    if (residual == 0) {
+        return 1;
+    }
+
+    return process5(x, y, a - 1, b, residual - 1) +
+           process5(x, y, a + 1, b, residual - 1) +
+           process5(x, y, a, b - 1, residual - 1) +
+           process5(x, y, a, b + 1, residual - 1);
+}
+
+// 求最大公约数（用的是辗转相除法）
+int gcd(int a, int b) {  // 注意a>b
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+/**
+ * 记忆化搜索版本
+ */
+int process5_memory(int x, int y, int a, int b, int residual, vector<vector<vector<int>>>& dp) {
+    if (a < 0 || b < 0 || a >= x || b >= y) {
+        return 0;
+    }
+
+    if (dp[residual][a][b] != -1) {
+        return dp[residual][a][b];
+    }
+
+    if (residual == 0) {
+        dp[residual][a][b] = 1;
+    } else {
+        dp[residual][a][b] = process5_memory(x, y, a - 1, b, residual - 1, dp) +
+                             process5_memory(x, y, a + 1, b, residual - 1, dp) +
+                             process5_memory(x, y, a, b - 1, residual - 1, dp) +
+                             process5_memory(x, y, a, b + 1, residual - 1, dp);
+    }
+
+    return dp[residual][a][b];
+}
+
+/**
+ * 动态规划版本
+ */
+int process5_dp(int x, int y, int a, int b, int K) {
+    vector<vector<vector<int>>> dp(K + 1, vector<vector<int>>(x, vector<int>(y, 0)));
+
+    for (int residual = 0; residual <= K; residual++) {
+        for (int i = 0; i < x; i++) {
+            for (int j = 0; j < y; j++) {
+                if (residual == 0) {
+                    dp[residual][i][j] = 1;
+                } else {
+                    int p1 = i - 1 < 0 ? 0 : dp[residual - 1][i - 1][j];
+                    int p2 = i + 1 >= x ? 0 : dp[residual - 1][i + 1][j];
+                    int p3 = j - 1 < 0 ? 0 : dp[residual - 1][i][j - 1];
+                    int p4 = j + 1 >= y ? 0 : dp[residual - 1][i][j + 1];
+                    dp[residual][i][j] = p1 + p2 + p3 + p4;
+                }
+            }
+        }
+    }
+
+    return dp[K][a][b];
+}
+
+int solution(int x, int y, int a, int b, int K) {
+    // 实际上survive和total应该会很大，所以这里最好使用long 或者long long代替int
+    int survive = process5_dp(x, y, a, b, K);
+    int total = pow(4, K);
+    int c = gcd(total, survive);  // 求最大公约数
+    int prob = survive / total;
+    cout << survive / c <<  '/' << total / c << endl;
+    return prob;
+}
+
+
+///////////////////////////////////优化动态规划///////////////////////////////////////
+
+/**
+ * 组出某个钱数的方法数（背包问题）
+ * 给定一个数组（无重复值），代表各种面值的货币
+ * 再给定一个总面额
+ * 要求使用数组中的货币组合出总面额K
+ * 数组中的货币可以重复使用多次
+ * 问一共有多少种组合
+ */
+/**
+ * 暴力递归版本
+ * 经典的从左往右尝试
+ */
+int process6(vector<int>& arr, int index, int residual) {
+    if (index == arr.size()) {  // 如果数组中的货币都选过了
+        return residual == 0 ? 1 : 0;
+    }
+
+    int res = 0;
+    for (int i = 0; i * arr[index] <= residual; i++) {  // 这里限制了i*arr[index]不会超过residual，所以不需要判断residual小于0
+        res += process6(arr, index + 1, residual - i * arr[index]);
+    }
+    return res;
+}
+
+/**
+ * 记忆化搜索版本
+ */
+int process6_memory(vector<int>& arr, int index, int residual, vector<vector<int>>& dp) {
+    if (dp[index][residual] != -1) {
+        return dp[index][residual];
+    }
+    if (index == arr.size()) {  // 如果数组中的货币都选过了
+        dp[index][residual] = residual == 0 ? 1 : 0;
+    } else {
+        dp[index][residual] = 0;
+        for (int i = 0; i * arr[index] <= residual; i++) {  // 这里限制了i*arr[index]不会超过residual，所以不需要判断residual小于0
+            dp[index][residual] += process6_memory(arr, index + 1, residual - i * arr[index], dp);
+        }
+    }
+    return dp[index][residual];
+}
+
+/**
+ * 动态规划版本
+ */
+int process6_dp(vector<int>& arr, int K) {
+    vector<vector<int>> dp(arr.size() + 1, vector<int>(K + 1, 0));
+    dp[arr.size()][0] = 1;
+    for (int index = arr.size(); index >= 0; index--) {
+        for (int residual = 0; residual <= K; residual++) {
+            for (int i = 0; i * arr[index] <= residual; i++) {  // 这里限制了i*arr[index]不会超过residual，所以不需要判断residual小于
+                dp[index][residual] += dp[index + 1][residual - i * arr[index]];
+            }
+        }
+    }
+    return dp[0][K];
+}
+
+/**
+ * 优化版本的动态规划
+ * 由于出现了枚举行为，使用斜率优化，看看邻近的格子是否可以代替枚举行为
+ * 由分析上述的依赖可知（这里的分析需要画图去找）
+ * 每一个格子的值都依赖于下一行中，小于当前格子列数，并且与当前格子相差arr[index]的倍数距离的格子
+ * 也就是普通动态规划中，第三个for循环中的枚举行为
+ * 但是简单分析一下，我们在枚举求和时，除了当前格子正下方的格子，之前格子的求和行为已经在上一次求解过了
+ * 这个上一次指的是，与当前格子同一行，小于当前的格子列数且相差一个arr[index]的格子
+ * 所以，我们只需要将当前格子正下方的数据加上之前已经求和过的结果，就节省了一大部分枚举的时间开销
+ */
+int process6_optimize_dp(vector<int>& arr, int K) {
+    vector<vector<int>> dp(arr.size() + 1, vector<int>(K + 1, 0));
+    dp[arr.size()][0] = 1;
+    for (int index = arr.size(); index >= 0; index--) {
+        for (int residual = 0; residual <= K; residual++) {
+            if (residual - arr[index] >= 0) {
+                dp[index][residual] = dp[index + 1][residual]  // 正下方的格子
+                                      + dp[index][residual - arr[index]];  // 与当前格子同一行且列上差一个arr[index]的格子
+            } else {
+                dp[index][residual] = dp[index + 1][residual];
+            }
+        }
+    }
+    return dp[0][K];
+}
+
+
 int main() {
     vector<int> coins = {1, 2, 3, 5, 7, 9};
 //    int target = 13;
@@ -384,7 +677,8 @@ int main() {
 //        vector<int> row(target + 1, -2);
 //        dp.emplace_back(row);
 //    }
-    cout << process3_dp(coins);
+    vector<vector<vector<int>>> dp(6, vector<vector<int>>(9, vector<int>(10, -1)));
+    cout << process4_dp(3, 4, 5);
 
     return 0;
 }
