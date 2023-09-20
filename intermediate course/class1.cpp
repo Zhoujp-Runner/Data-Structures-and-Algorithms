@@ -15,7 +15,9 @@
  *      a.方块染色问题
  *      b.寻找最大正方形
  * 4.给定一个函数，能够按照一定概率返回一些数，要求使用该函数等概率返回另一些数
- * 最近修改日期：2023-09-18
+ * 5.二叉树结构的可能性（暴力递归、DP）
+ * 6.合法的括号字符串
+ * 最近修改日期：2023-09-20
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -449,16 +451,78 @@ int g3() {
     return res == 1 ? 0 : 1;
 }
 
+
+/**
+ * 二叉树结构的可能性
+ * 给定一个非负整数，表示二叉树的节点个数，求能形成多少种不同的二叉树结构
+ */
+int process5(int n) {
+    if (n == 1 || n == 0) {
+        return 1;
+    }
+    if (n == 2) {
+        return 2;
+    }
+
+    int res = 0;
+    for (int node = 0; node <= n - 1; node++) {
+        int left = process5(node);
+        int right = process5(n - 1 - node);
+        res += left * right;
+    }
+    return res;
+}
+
+int process5_dp(int N) {
+    vector<int> dp(N + 1, 0);
+    dp[0] = 1;
+    dp[1] = 1;
+    dp[2] = 2;
+    for (int n = 3; n <= N; n++) {
+        for (int node = 0; node <= n - 1; node++) {
+            dp[n] += dp[node] * dp[n - 1 - node];
+        }
+    }
+    return dp[N];
+}
+
+
+/**
+ * 合法的括号字符串
+ * 如果一个字符串中的每个右括号都能在其左边找到与之配对的左括号，每个左括号都能找到与之配对的右括号，则该字符串是合法的
+ * 例如"()()()"合法  "(()())"合法   "(()"不合法
+ * 牛牛拿到一个字符串
+ * 请问牛牛至少需要添加几个括号能够使其变为合法的字符串
+ */
+int process6(string s) {
+    int n = s.length();
+    int res = 0, count = 0;
+    for (int i = 0; i < n; i++) {
+        if (s[i] == '(') {
+            count++;
+        } else if (s[i] == ')') {
+            if (count == 0) {
+                res++;
+            } else {
+                count--;
+            }
+        }
+    }
+    res += count;
+    return res;
+}
+
+
 int main() {
-//    for (int i = 0; i < 50; ++i) {
-//        if (eat(i) != eat_(i)) {
-//            cout << "ops" << endl;
-//        }
-//    }
-    vector<vector<int>> matrix = {{1, 1, 0, 1},
-                                  {1, 1, 1, 1},
-                                  {0, 1, 0, 1},
-                                  {0, 1, 0, 1}};
-    cout << process4_(matrix);
+    for (int i = 0; i < 10; ++i) {
+        if (process5(i) != process5_dp(i)) {
+            cout << "ops" << endl;
+        }
+    }
+//    vector<vector<int>> matrix = {{1, 1, 0, 1},
+//                                  {1, 1, 1, 1},
+//                                  {0, 1, 0, 1},
+//                                  {0, 1, 0, 1}};
+//    cout << process4_(matrix);
     return 0;
 }
