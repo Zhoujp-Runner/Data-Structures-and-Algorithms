@@ -1,7 +1,7 @@
 /***********************************************************************
  * Copyright 2023 by Zhou Junping
  *
- * @file     class1.cpp
+ * @file     class2.cpp
  * @brief    这个文件用于本人学习数据结构与算法
  *
  * @details
