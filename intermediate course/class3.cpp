@@ -7,12 +7,13 @@
  * @details
  * 该文件写的是左程云算法视频的中级提升课程中的内容：
  * 1.右上角开始查找的模型(两道例题)
- * 最近修改日期：2023-09-20
+ * 2.打包机器问题（洗衣机问题）
+ * 最近修改日期：2023-11-02
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
  * @version  1.0
- * @data     2023-9-20
+ * @data     2023-11-02
  *
  */
 
@@ -87,6 +88,44 @@ vector<int> process1_1(vector<vector<int>>& matrix) {
     return res;
 }
 
+
+/**
+ * 打包机器问题（洗衣机问题）
+ * 有n个打包机器从左到右依次排开，每个打包机器上的物品数量有多有少
+ * 必须保证n个打包机器上的物品数量一致时才能进行打包
+ * 由于物品重量大，每次只能搬运一个物品，且只能将一个物品搬运到相邻的机器上
+ * 所有机器都对应一个搬运工人，每一轮中所有机器对应的工人同时进行搬运
+ * 请计算能够使每个打包机器上的物品数量的相等的最小移动轮数
+ * 如果不能使每个机器上的数量相等，返回-1
+ */
+/**
+ * 思路：单独考虑一台机器左右两边，为了达到均值所需要经过该台机器的流动物品数量，记为流量
+ * 所有机器的流量最大值即为答案
+ */
+int minTimes_PackageMachine(int n, vector<int> items) {
+    if (n == 1) return 0;
+
+    // 计算物品总数
+    int sum = 0;
+    for (auto item : items) {
+        sum += item;
+    }
+
+    if (sum % n != 0) return -1;  // 如果不能被整除，说明不能达到每个机器上的物品相同的情况
+
+    int average = sum / n, left_sum = 0, max_flow = 0;
+    for (int i = 0; i < n; i++) {
+        // 计算左右两边各自需要多少物品，正数为需要搬出的物品，负数为需要搬入的物品
+        int left_need = left_sum - average * i;
+        int right_need = sum - left_sum - items[i] - average * (n - i - 1);
+        if (left_need < 0 && right_need < 0) {  // 如果两边都需要搬入，但是一个机器一轮只能搬出一件，所以是求和
+            max_flow = max(abs(left_need) + abs(right_need), max_flow);
+        } else {  // 其他情况下都是取最大值
+            max_flow = max(max(abs(left_need), abs(right_need)), max_flow);
+        }
+    }
+    return max_flow;
+}
 
 int main() {
     vector<vector<int>> m = {{0,0,0,0,1},
