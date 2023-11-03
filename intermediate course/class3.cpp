@@ -8,17 +8,19 @@
  * 该文件写的是左程云算法视频的中级提升课程中的内容：
  * 1.右上角开始查找的模型(两道例题)
  * 2.打包机器问题（洗衣机问题）
- * 最近修改日期：2023-11-02
+ * 3.用宏观的方式解决局部问题(两道例题)
+ * 最近修改日期：2023-11-03
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
  * @version  1.0
- * @data     2023-11-02
+ * @data     2023-11-03
  *
  */
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 using namespace std;
 
@@ -127,15 +129,129 @@ int minTimes_PackageMachine(int n, vector<int> items) {
     return max_flow;
 }
 
-int main() {
-    vector<vector<int>> m = {{0,0,0,0,1},
-                             {0,0,1,1,1},
-                             {0,0,0,1,1},
-                             {0,0,1,1,1},
-                             {0,0,0,0,1}};
-    vector<int> res = process1_1(m);
-    for(const auto& i : res) {
-        cout <<i << endl;
+
+/**
+ * 用宏观的方式解决局部问题
+ */
+/**
+ * 用螺旋的方式打印矩阵（顺时针打印），例如
+ * 0  1  2  3
+ * 4  5  6  7
+ * 8  9  10 11
+ * 12 13 14 15
+ * 打印结果为：0 1 2 3 7 11 15 14 13 12 8 4 5 6 10 9
+ */
+void process2_1(vector<vector<int>> matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+    // 只顺时针打印以（a，b）和（c，d）为角点的边界
+    function<void(int, int, int, int)> print_edge = [&](int a, int b, int c, int d) {
+        if (a == c) {  // 如果两个角点在同一行
+            for (int i = b; i <= d; i++) {
+                cout << matrix[a][i] << ' ';
+            }
+        } else if (b == d) {  // 如果两个角点在同一列
+            for (int i = a; i <= c; i++) {
+                cout << matrix[i][b] << ' ';
+            }
+        } else {  // 两个角点不同行不同列，能构成一个矩形
+            for (int i = b; i <= d; i++) {
+                cout << matrix[a][i] << ' ';
+            }
+            for (int i = a + 1; i <= c; i++) {
+                cout << matrix[i][d] << ' ';
+            }
+            for (int i = d - 1; i >= b; i--) {
+                cout << matrix[c][i] << ' ';
+            }
+            for (int i = c - 1; i > a; i--) {
+                cout << matrix[i][b] << ' ';
+            }
+        }
+    };
+
+    int a0 = 0, b0 = 0, c0 = m - 1, d0 = n - 1;
+    while (a0 <= c0 && b0 <= d0) {  // 保证abcd的大小顺序
+        print_edge(a0++, b0++, c0--, d0--);  // 以斜45角度从矩阵边缘向矩阵中心遍历
     }
+}
+
+/**
+ * 将方阵顺时针旋转90度，例如
+ * 0  1  2  3
+ * 4  5  6  7
+ * 8  9  10 11
+ * 12 13 14 15
+ * 结果为：
+ * 12 8  4  0
+ * 13 9  5  1
+ * 14 10 6  2
+ * 15 11 7  3
+ */
+vector<vector<int>> process2_2(vector<vector<int>> matrix) {
+    int m = matrix.size();
+    int n = matrix[0].size();
+
+    function<void(int, int, int, int)> rotate_edge = [&](int a, int b, int c, int d) {
+        // 左右对称
+        for (int i = a; i <= c; i++) {
+            int temp = matrix[i][b];
+            matrix[i][b] = matrix[i][d];
+            matrix[i][d] = temp;
+        }
+        for (int i = 1; i <= (d - b - 1) / 2; i++) {
+            int temp1 = matrix[a][b + i];
+            matrix[a][b + i] = matrix[a][d - i];
+            matrix[a][d - i] = temp1;
+
+            int temp2 = matrix[c][b + i];
+            matrix[c][b + i] = matrix[c][d - i];
+            matrix[c][d - i] = temp2;
+        }
+
+        // 负对角线对称
+        for (int i = 0; i <= d - b; i++) {
+            int temp = matrix[a][b + i];
+            matrix[a][b + i] = matrix[c - i][d];
+            matrix[c - i][d] = temp;
+        }
+        for (int i = 1; i <= d - b; i++) {
+            int temp = matrix[a + i][b];
+            matrix[a + i][b] = matrix[c][d - i];
+            matrix[c][d - i] = temp;
+        }
+    };
+
+    int a0 = 0, b0 = 0, c0 = m - 1, d0 = n - 1;
+    while (a0 < c0 && b0 < d0) {
+        rotate_edge(a0++, b0++, c0--, d0--);
+    }
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            cout << matrix[i][j] << ' ';
+        }
+        cout << endl;
+    }
+
+    return matrix;
+}
+
+int main() {
+    vector<vector<int>> m = {{0,1,2,3,0},
+                             {4,5,6,7,0},
+                             {8,9,10,11,0},
+                             {12,13,14,15,0},
+                             {1,2,3,4,5}};
+    process2_2(m);
+//    vector<vector<int>> m = {{0,0,0,0,1},
+//                             {0,0,1,1,1},
+//                             {0,0,0,1,1},
+//                             {0,0,1,1,1},
+//                             {0,0,0,0,1}};
+//    vector<int> res = process1_1(m);
+//    for(const auto& i : res) {
+//        cout <<i << endl;
+//    }
     return 0;
 }
