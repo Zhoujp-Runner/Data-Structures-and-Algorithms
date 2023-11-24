@@ -9,7 +9,9 @@
  * 1.打印文件目录
  * 2.树形DP相关题目（两道例题）
  * 3.假设答案法（两道例题）
- * 最近修改日期：2023-11-23
+ * 4.点亮区域的最少路灯数量
+ * 5.由先序和中序得到后序
+ * 最近修改日期：2023-11-24
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -23,6 +25,7 @@
 #include <map>
 #include <string>
 #include <functional>
+#include <unordered_map>
 
 using namespace std;
 
@@ -287,12 +290,132 @@ int maxSumSubMatrix(vector<vector<int>>& matrix) {
 }
 
 
+/**
+ * 点亮区域的最少路灯数量
+ * 给定一个字符串，字符串只由'X'和'.'
+ * 其中'X'代表墙，不能放置路灯，'.'是空地，可以放置路灯
+ * 一个路灯可以照亮自己本身区域及其相邻的两个区域
+ * 请问如何最少地放置路灯，能够使得所有空地都被点亮
+ */
+/**
+ * 分析：
+ * 我认为只需要统计每一段连续的'.'的个数，然后除以3向上取整就可以
+ * 左程云是用的另一种贪心思路，是对的，可能他一开始没讲清楚，
+ * 后面我想了一下，是对的，他那里的light++不是说把灯放到了i位置，是i或者i+1位置肯定需要一盏灯
+ * 他的讲解具体见链接：https://www.bilibili.com/video/BV13g41157hK?p=27&vd_source=e3780c93bbfab1295672c1a3f1be54d5
+ */
+// 我自己的解法
+int MyMinLight(string s) {
+    int res = 0;
+    for (int i = 0; i < s.size();) {
+        // 跳过连续的墙壁
+        while (i < s.size() && s[i] == 'X') {
+            i++;
+        }
+        // 统计连续的空地
+        int count = 0;
+        while (i < s.size() && s[i] == '.') {
+            i++;
+            count++;
+        }
+        // 计算该空地上最少需要几盏路灯（向上取整，因为小于等于3的空地必定需要一盏路灯）
+        res += (count + 2) / 3;
+    }
+    return res;
+}
+// 左程云的贪心版本
+int ZuoMinLight(string str) {
+    int index = 0;
+    int light = 0;
+    // 规定，当来到i位置时，之前给的灯一定不会影响到i位置，且之前都点亮了
+    while (index < str.size()) {
+        if (str[index] == 'X') {  // 如果当前为墙壁，则直接跳过
+            index++;
+        } else {  //如果当前为空地
+            light++;  // 无论后续怎样，先给灯
+            if (index + 1 == str.size()) break;  // 如果后续没有了，就直接break
+            if (str[index + 1] == 'X') {
+                // 如果下一个位置是墙，那就将index更新为index+2，此时灯放置在index位置，无法影响到index+2位置，满足循环一开始的规定
+                index = index + 2;
+            } else {
+                // 如果下一个位置是空地，那么此时，刚刚给的灯放在了index+1位置，所以需要将index跳到index+3
+                // 因为index+2位置无论是墙壁还是空地，都已经可以不用判断了，但是index+1位置的灯无法影响到index+3位置，满足循环一开始的规定
+                index = index + 3;
+            }
+        }
+    }
+    return light;
+}
+
+
+/**
+ * 由先序和中序得到后序
+ * 给定两个数组，分别代表一颗树的先序遍历和中序遍历
+ * 请返回后序遍历的结果（节点的值不重复）
+ */
+/**
+ * 分析：
+ * 先序是 中左右  中序是 左中右   后序是 左右中
+ * 那么我们可以设计一个递归函数
+ * 递归函数的含义是，由先序遍历中的某一个范围与响应的中序遍历中的某一个范围，生成后序遍历中的某一个范围的数据
+ * 那么问题就转变为了如何确定这三个范围
+ * 首先给定先序遍历的范围 0~N，中序遍历范围0~N，后序遍历范围也是0~N
+ * 如何得到左右子树的范围？
+ * 首先先序遍历的第一个节点就是整颗树的根节点，该节点肯定放在后续遍历范围的最后一个位置（左右中）
+ * 在中序遍历中找到该节点，就可以确定左右子树在中序的范围以及大小（左边的都是左树，右边的都是右树）
+ * 根据大小可以分别在先序和后序中确定相应的范围（具体见代码，其实就是根据三种遍历的遍历顺序得到的）
+ */
+vector<int> PreAndIn2Post(vector<int>& pre_order, vector<int>& in_order) {
+    int n = pre_order.size();
+    vector<int> post_order(n);
+    unordered_map<int, int> in_root_index;
+    for (int i = 0; i < n; i++) {
+        in_root_index[in_order[i]] = i;
+    }
+    function<void(pair<int, int>, pair<int, int>, pair<int, int>)> process =
+            [&](pair<int, int> pre, pair<int, int> in, pair<int, int> post) {
+        // 防止左子树或者右子树为空
+        if (pre.first > pre.second) return;
+        // 当左右子树只有一个节点时，三种遍历的结果一样，直接填入
+        if (pre.first == pre.second) {
+            post_order[post.first] = pre_order[pre.first];
+            return;
+        }
+        // 先序遍历的第一个元素就是后序遍历的最后一个元素
+        post_order[post.second] = pre_order[pre.first];
+        // 当前整颗树的根节点
+        int root = pre_order[pre.first];
+        // 根节点在中序遍历的位置
+        int root_index_in = in_root_index[root];
+        // 计算出左子树大小
+        int left_size = root_index_in - in.first;
+        process({pre.first + 1, pre.first + left_size},  // 左子树先序遍历的范围
+                {in.first, root_index_in - 1},  // 左子树中序遍历的范围
+                {post.first, post.first + left_size - 1});  // 左子树后序遍历的范围
+        process({pre.first + left_size + 1, pre.second},  // 右子树先序遍历的范围
+                {root_index_in + 1, in.second},  // 右子树中序遍历的范围
+                {post.first + left_size, post.second - 1});  // 右子树后序遍历的范围
+    };
+    // 调用递归函数
+    process({0, n - 1}, {0, n - 1}, {0, n - 1});
+    return post_order;
+}
+
+
 int main() {
 //    vector<string> paths = {"b\\cst", "d\\", "a\\d\\e", "a\\b\\c"};
 //    printDict(paths);
-    vector<vector<int>> matrix = {{1, -2, 3, 4},
-                                  {-5, 6, 2, 9},
-                                  {3, -20, 1, 3}};
-    cout << maxSumSubMatrix(matrix);
-   return 0;
+//    vector<vector<int>> matrix = {{1, -2, 3, 4},
+//                                  {-5, 6, 2, 9},
+//                                  {3, -20, 1, 3}};
+//    cout << maxSumSubMatrix(matrix);
+//    string s = "X.X.X..X.....XXX..XXX....XX..X.X...X..X.X";
+//    cout << MyMinLight(s) << ' ' << ZuoMinLight(s) << endl;
+    vector<int> pre_order = {1, 2, 4, 5, 7, 3, 6, 8};
+//    vector<int> pre_order = {1,2,4,5,3,6,7};
+    vector<int> in_order = {4, 2, 7, 5, 1, 6, 8, 3};
+//    vector<int> in_order = {4,2,5,1,6,3,7};
+    vector<int> post_order = PreAndIn2Post(pre_order, in_order);
+    for (auto i: post_order) cout << i << ' ';
+    return 0;
 }
