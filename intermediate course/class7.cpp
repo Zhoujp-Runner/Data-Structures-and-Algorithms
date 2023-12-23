@@ -8,7 +8,10 @@
  * 该文件写的是左程云算法视频的中级提升课程中的内容：
  * 1.求一颗完全二叉树的节点数（时间复杂度低于O(N)）
  * 2.最长递增子序列问题（时间复杂度低于O(N^2)）
- * 最近修改日期：2023-12-14
+ * 3.一个数能否被3整除
+ * 4.找出未出现过的数字（额外空间复杂度为O(1)，时间复杂度为O(N)）
+ * 5.使人气正好达标的最少花钱数（寻找额外的限制条件）
+ * 最近修改日期：2023-12-23
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -138,8 +141,116 @@ int LongestSubsequence(vector<int>& arr) {
 }
 
 
+/**
+ * 一个数能否被3整除
+ * 给定一个n，定义一个数为123...n
+ * 意思是当n=2时，num=12
+ * 当n=3时，num=123
+ * 当n=13时，num=12345678910111213
+ * 问，给定n的情况下，判断n对应数字是否能被3整除
+ */
+/**
+ * 思路：
+ * 第一种思路：直接根据n得到num，然后对3取模
+ * 第二种思路：将num的每一位相加，然后对3取模
+ * 第三种思路：直接求n的等差数列之和，然后对3取模
+ * 很明显，第一种和第二种都不太可取，当n特别大时，第一种无法表示，第二种时间复杂度有点高
+ * 第三种是根据第二种进一步得到的，试想10能否被3整除，我们可以直接10对3取模，也可以1+0然后对3取模，这两种是等价的
+ * 那么910能否被3整除，我们可以9+1+0模3，也可以9+10模3
+ */
+bool CanBeDividedByThree(int n) {
+    if (n == 2) return false;
+    return ((1 + n) * n / 2) % 3 == 0;
+}
+
+
+/**
+ * 找出未出现过的数字（额外空间复杂度为O(1)，时间复杂度为O(N)）
+ * 给定一个数组，长度为n，数组中的元素都大于等于1，小于等于n，数组中的数允许重复
+ * 请找出，1到n之间未在数组中出现的数（要求额外空间复杂度为O(1)，时间复杂度为O(N)）
+ */
+/**
+ * 思路：in-place算法，即原地修改数组，规定下标为i的位置上存储的数为i+1
+ * 遍历数组，当发现当前下标存的不是i+1，就将当前下标存的数放到规定的位置，循环此过程，直到回到开始交换的位置，或者需要被放置的位置已经有了规定的值
+ * 第二次遍历判断那些位置上没有存规定的数，就缺少哪些数
+ */
+vector<int> AbsentNums(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n; i++) {
+        // 如果当前位置上已经是规定的数，那么跳过该位置
+        if (arr[i] == i + 1) continue;
+        int num = arr[i];  // 记录需要调整位置的数
+        // 如果该数的对应位置上没有存放该数，并且该位置不是i
+        while (arr[num - 1] != num && num - 1 != i) {
+            // 将该数放在对应位置上，并将num更新为位置上原本的数
+            int new_num = arr[num - 1];
+            arr[num - 1] = num;
+            num = new_num;
+        }
+    }
+    vector<int> res;
+    // 第二次遍历，找未出现的数
+    for (int i = 0; i < n; i++) {
+        if (arr[i] != i + 1) res.push_back(i + 1);
+    }
+    return res;
+}
+
+
+/**
+ * 使人气正好达标的最少花钱数
+ * 给定初始人气a和目标人气b，两者都是偶数
+ * 规定三种操作
+ * 操作一：花费x元，使人气+2
+ * 操作二：花费y元，使人气*2
+ * 操作三：花费z元，使人气-2
+ * 问使人气正好等于b需要花费的最少钱数
+ */
+/**
+ * 思路：
+ * 乍一看，就是一个简单的动态规划题，可变参数就是当前的花费cur，递归含义是由cur到b花费的最少钱数，base case就是当cur==b时，返回0
+ * 递归体内是三种情况，然后返回三种情况的最小花费（下面会给出无法终止的写法）
+ * 但是实际写的过程中，如果按照上面去写，递归无法终止，因为缺少终止条件，单单上面的一个base case是不够的，试想，递归可能一直尝试-2，使得cur永远不能等于b
+ * 所以需要额外的限制条件，本题的限制条件可以如下所示:
+ * 首先假设我只进行操作1，需要花费多少钱，当cur超过这个钱数的时候，就不必继续递归了，这个钱数可以作为limit1
+ * 其次，无论我怎么进行操作，人气都不可能大于2*b，因为如果我想大于2*b的话，那么肯定需要先到达b，所以这个2*b可以作为limit2
+ * 最后，我的人气不可能小于0，作为limit3
+ * 有这三个条件，就可以使递归正常终止
+ *
+ * 所以这道题有两种方法找限制
+ * 第一种是找一个平凡解，即limit1
+ * 第二种是从题目中所给信息，算出某些变量的变化范围，即limit2和limit3
+ * 这两种找限制的方法需要灵活运用
+ * （leetcode中有一题和这个类似，就是需要人为寻找限制条件，明天有时间找到复习一下，并把那道题贴到这里）
+ */
+// 无法终止的版本
+int MinConsumptionEndless(int a, int b, int x, int y, int z) {
+    if (a == b) return 0;
+    int p1 = MinConsumptionEndless(a + 2, b, x, y, z) + x;
+    int p2 = MinConsumptionEndless(a * 2, b, x, y, z) + y;
+    int p3 = MinConsumptionEndless(a - 2, b, x, y, z) + z;
+    return min(p1, min(p2, p3));
+}
+
+// 可以正常终止的版本
+int MinConsumption(int a, int b, int x, int y, int z) {
+    int limit1 = ((b - a) / 2) * x;
+    // 注意，这里的递归含义有所不同，这里的递归表示尝试的含义，我当前试到人气为cur时，且当前花费为spend，达到b所能花费的最少总钱数
+    function<int(int, int)> process = [&](int cur, int spend) {
+        if (cur == b) return spend;
+        if (spend >= limit1 || cur >= 2 * b || cur < 0) return INT_MAX;
+        int p1 = process(cur + 2, spend + x);
+        int p2 = process(cur * 2, spend + y);
+        int p3 = process(cur - 2, spend + z);
+        return min(p1, min(p2, p3));
+    };
+    return process(a, 0);
+}
+
+
 int main() {
-    vector<int> a = {1, 4, 3, 2, 6, 7, 4, 9, 8, 6, 29, 4, 0, 28, 8, 6};
-    cout << LongestSubsequence(a);
+    vector<int> a = {1, 1, 4, 3, 6, 7, 3};
+//    AbsentNums(a);
+    cout << MinConsumption(6, 10, 40, 50, 10);
     return 0;
 }
