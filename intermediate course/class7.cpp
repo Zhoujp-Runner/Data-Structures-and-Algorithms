@@ -11,7 +11,8 @@
  * 3.一个数能否被3整除
  * 4.找出未出现过的数字（额外空间复杂度为O(1)，时间复杂度为O(N)）
  * 5.使人气正好达标的最少花钱数（寻找额外的限制条件）
- * 最近修改日期：2023-12-23
+ * 6.从终点反向回推
+ * 最近修改日期：2023-12-31
  *
  * @author   Zhou Junping
  * @email    zhoujunpingnn@gmail.com
@@ -248,8 +249,52 @@ int MinConsumption(int a, int b, int x, int y, int z) {
 }
 
 
+/**
+ * 从终点反向回推
+ * 给定一个二维数组edges，其中edges[i] = {a, b}表示从a到b存在一条有向边
+ * 给定一个二维数组nodes，其中nodes[i] = {v, c}表示节点i的价值为v，但是花费为c
+ * 现在，你可以从图中的任何一个点出发，必须到达终点n-1节点
+ * 给定最大的花费为threshold
+ * 问不超过花费的前提下，哪条路径的价值最高（某一条路径的价值为该路径上所有节点价值之和，路径的花费也同理），求该价值。
+ */
+/**
+ * 我们可以从终点n-1出发，反向找到所有路径
+ * 对每个节点都建一张表，该表中存放两个数据，分别为当前点到终点的花费与价值
+ * 表中数据的存放逻辑为，当花费增加时，价值必须增加，即两者单调递增（因为一个节点存在不同的路径可以到达终点，所以会有多个花费和价值）
+ * 然后对图使用宽度优先遍历
+ * 最后，将所有的表合并，然后二分得到答案（这个做法是当需要多次查询时）
+ *
+ * 如果只有一次查询，直接进行深度优先遍历，当花费超过threshold的时候，遍历即可停止，计算总v，然后与已经计算过的结果比大小，取最大值
+ */
+int maxValue(vector<vector<int>>& edges, vector<vector<int>>& nodes, int threshold) {
+    int n = nodes.size();
+    vector<vector<int>> map(n);
+    for (auto e: edges) {
+        int x = e[0], y = e[1];
+        map[y].push_back(x);
+    }
+
+    // 这里的做法是只有一次查询
+    int res = 0;
+    function<void(int, int, int)> dfs = [&](int cur, int cost, int value) {
+        for (int next: map[cur]) {
+            // 如果算上下一个节点就会超出阈值，那么直接将value与外部的res比较大小
+            if (cost + nodes[next][1] > threshold) {
+                res = max(res, value);
+                continue;
+            }
+            dfs(next, cost + nodes[next][1], value + nodes[next][0]);
+        }
+    };
+
+    dfs(n - 1, nodes[n - 1][1], nodes[n - 1][0]);
+    return res;
+}
+
+
+
 int main() {
-    vector<int> a = {1, 1, 4, 3, 6, 7, 3};
+//    vector<int> a = {1, 1, 4, 3, 6, 7, 3};
 //    AbsentNums(a);
     cout << MinConsumption(6, 10, 40, 50, 10);
     return 0;
